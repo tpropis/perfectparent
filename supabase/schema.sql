@@ -202,8 +202,9 @@ ALTER TABLE message_recipients ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
 
--- Profiles: users can read all profiles in their school, edit own
+-- Profiles: users can read all profiles, edit own; trigger can insert
 CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (true);
+CREATE POLICY "profiles_insert" ON profiles FOR INSERT WITH CHECK (true);
 CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Schools: all authenticated users can view
@@ -277,7 +278,7 @@ CREATE POLICY "attendance_select" ON attendance_records FOR SELECT USING (
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, email, full_name, role)
+  INSERT INTO public.profiles (id, email, full_name, role)
   VALUES (
     NEW.id,
     NEW.email,
@@ -286,7 +287,7 @@ BEGIN
   );
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
